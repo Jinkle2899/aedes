@@ -1,15 +1,10 @@
 /* Site-wide font options (Google Fonts, loaded on demand) */
+import { registry } from '../blocks/index.js'
+
 export const FONTS = ['Inter', 'Space Grotesk', 'Poppins', 'DM Sans', 'Sora', 'Playfair Display', 'Lora', 'JetBrains Mono']
 
-/* Browse-drawer categories */
-export const CATS = {
-  layout: ['section', 'columns', 'canvas', 'spacer'],
-  navigation: ['navbar', 'footer'],
-  text: ['text', 'rotator', 'tabs', 'accordion'],
-  media: ['image', 'gallery'],
-  marketing: ['hero', 'features', 'stats', 'quote', 'cta', 'countdown'],
-  forms: ['form'],
-}
+/* Browse-drawer categories — derived from each block's `category` in the registry. */
+export const CATS = registry.toCategories()
 
 /* Style-panel color presets */
 export const BG_SWATCHES = [null, '#ffffff', '#f2f4f7', '#17171a', '#0a0a0b', '#fef3c7', '#dbeafe', '#dcfce7', '#fce7f3']

@@ -1,5 +1,7 @@
 /* Site storage — localStorage-backed, no backend needed for the prototype */
 
+import { registry } from '../blocks/index.js'
+
 const KEY = 'aedes:sites'
 
 export const uid = () => Math.random().toString(36).slice(2, 10)
@@ -24,167 +26,14 @@ export function saveSite(site) {
   saveSites(sites)
 }
 
-/* ---------------- Block definitions ---------------- */
+/* ---------------- Block definitions ----------------
+ * Sourced from the Block Registry (src/blocks). BLOCK_DEFS / BLOCK_TYPES keep
+ * their historical shape so existing consumers are untouched. Add or edit a
+ * block in src/blocks/types — not here.
+ */
+export const BLOCK_DEFS = registry.toBlockDefs()
 
-export const BLOCK_DEFS = {
-  navbar: {
-    label: 'Navbar',
-    hint: 'Brand + links up top',
-    defaults: {
-      brand: 'Your brand',
-      links: ['Work', 'About', 'Contact'],
-      button: 'Say hello',
-    },
-  },
-  hero: {
-    label: 'Hero',
-    hint: 'Big opening statement',
-    defaults: {
-      heading: 'Make something people remember',
-      sub: 'One clear sentence about what you do and why it matters.',
-      button: 'Get started',
-      align: 'center',
-      tone: 'light',
-    },
-  },
-  canvas: {
-    label: 'Freeform',
-    hint: 'Place anything anywhere',
-    defaults: {
-      height: 460,
-      elements: [
-        { id: 't1', kind: 'text', x: 8, y: 70, w: 55, text: 'Anything, anywhere.', size: 36, weight: 600, color: '#17171a' },
-        { id: 't2', kind: 'text', x: 8, y: 140, w: 46, text: 'Drag to move. Double-click to edit. Pull the corner to resize. Add images of any size.', size: 16, weight: 400, color: '#6b7280' },
-      ],
-    },
-  },
-  section: {
-    label: 'Section',
-    hint: 'Holds other blocks',
-    defaults: { tone: 'tint', pad: 'md' },
-  },
-  columns: {
-    label: 'Columns',
-    hint: 'Side-by-side layout',
-    defaults: {},
-  },
-  column: {
-    label: 'Column',
-    internal: true,
-    defaults: {},
-  },
-  text: {
-    label: 'Text',
-    hint: 'Heading + paragraph',
-    defaults: {
-      heading: 'A section heading',
-      body: 'Use this space to tell your story — what you make, who it is for, and what makes it different.',
-    },
-  },
-  image: {
-    label: 'Image',
-    hint: 'Media placeholder',
-    defaults: { caption: 'A caption for this image', ratio: 'wide' },
-  },
-  gallery: {
-    label: 'Gallery',
-    hint: 'Three-up image grid',
-    defaults: { caption: 'Selected work' },
-  },
-  features: {
-    label: 'Features',
-    hint: 'Three selling points',
-    defaults: {
-      items: [
-        { t: 'Fast', d: 'Loads in a blink, everywhere.' },
-        { t: 'Simple', d: 'No manual required.' },
-        { t: 'Yours', d: 'Your name on it, not ours.' },
-      ],
-    },
-  },
-  stats: {
-    label: 'Stats',
-    hint: 'Big numbers row',
-    defaults: {
-      items: [
-        { n: '12k+', l: 'Happy customers' },
-        { n: '99.9%', l: 'Uptime' },
-        { n: '4.9★', l: 'Average rating' },
-      ],
-    },
-  },
-  tabs: {
-    label: 'Tabs',
-    hint: 'Switchable panels',
-    defaults: {
-      items: [
-        { t: 'Overview', d: 'What this is and why it matters — the short version.' },
-        { t: 'Details', d: 'The specifics, for people who read the fine print.' },
-        { t: 'FAQ', d: 'Answers to the questions everyone asks first.' },
-      ],
-    },
-  },
-  accordion: {
-    label: 'Accordion',
-    hint: 'Expandable Q&A',
-    defaults: {
-      items: [
-        { q: 'How does it work?', a: 'Simply. You click, it does the thing, everyone is happy.' },
-        { q: 'What does it cost?', a: 'Less than you expect. See the pricing section for details.' },
-        { q: 'Can I cancel anytime?', a: 'Yes — no contracts, no exit interviews.' },
-      ],
-    },
-  },
-  countdown: {
-    label: 'Countdown',
-    hint: 'Ticking timer to a date',
-    defaults: { heading: 'Something big is coming', target: '' },
-  },
-  rotator: {
-    label: 'Animated text',
-    hint: 'Cycling headline word',
-    defaults: { prefix: 'We build', words: ['websites', 'brands', 'momentum'] },
-  },
-  quote: {
-    label: 'Quote',
-    hint: 'Testimonial or pull-quote',
-    defaults: {
-      text: '“They made us look like the company we always thought we were.”',
-      author: 'Alex Rivera',
-      role: 'Founder, Somewhere Co.',
-    },
-  },
-  form: {
-    label: 'Contact form',
-    hint: 'Name, email, message',
-    defaults: {
-      heading: 'Get in touch',
-      sub: "Tell us what you're thinking — we reply within a day.",
-      button: 'Send message',
-    },
-  },
-  cta: {
-    label: 'Call to action',
-    hint: 'Closing pitch + button',
-    defaults: { heading: 'Ready when you are.', button: 'Start now' },
-  },
-  spacer: {
-    label: 'Spacer',
-    hint: 'Breathing room',
-    defaults: { height: 72 },
-  },
-  footer: {
-    label: 'Footer',
-    hint: 'Brand, links, small print',
-    defaults: {
-      brand: 'Your brand',
-      links: ['Instagram', 'Twitter', 'Email'],
-      note: '© 2026 · All rights reserved',
-    },
-  },
-}
-
-export const BLOCK_TYPES = Object.keys(BLOCK_DEFS).filter((t) => !BLOCK_DEFS[t].internal)
+export const BLOCK_TYPES = registry.blockTypes
 
 export const emptyColumn = () => ({ id: uid(), type: 'column', props: {}, children: [] })
 
