@@ -15,4 +15,20 @@ export default {
     sub: "Tell us what you're thinking — we reply within a day.",
     button: "Send message",
   },
+  fields: [
+    {
+      control: "text",
+      key: "heading",
+      label: "Heading",
+    },
+    {
+      control: "textarea",
+      key: "sub",
+      label: "Subheading",
+      rows: 3,
+    },
+    {
+      control: "button",
+    },
+  ],
 }

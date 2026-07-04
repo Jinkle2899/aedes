@@ -13,4 +13,16 @@ export default {
     prefix: "We build",
     words: ["websites", "brands", "momentum"],
   },
+  fields: [
+    {
+      control: "text",
+      key: "prefix",
+      label: "Leading text",
+    },
+    {
+      control: "stringArray",
+      key: "words",
+      label: "Cycling words",
+    },
+  ],
 }

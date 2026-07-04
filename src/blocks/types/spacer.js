@@ -12,4 +12,13 @@ export default {
   defaults: {
     height: 72,
   },
+  fields: [
+    {
+      control: "number",
+      key: "height",
+      label: "Height (px)",
+      min: 16,
+      max: 400,
+    },
+  ],
 }

@@ -13,4 +13,17 @@ export default {
     caption: "A caption for this image",
     ratio: "wide",
   },
+  fields: [
+    {
+      control: "text",
+      key: "caption",
+      label: "Caption",
+    },
+    {
+      control: "seg",
+      key: "ratio",
+      label: "Ratio",
+      options: ["wide", "square"],
+    },
+  ],
 }

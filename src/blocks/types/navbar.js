@@ -15,4 +15,19 @@ export default {
     links: ["Work", "About", "Contact"],
     button: "Say hello",
   },
+  fields: [
+    {
+      control: "text",
+      key: "brand",
+      label: "Brand",
+    },
+    {
+      control: "button",
+    },
+    {
+      control: "stringArray",
+      key: "links",
+      label: "Links",
+    },
+  ],
 }

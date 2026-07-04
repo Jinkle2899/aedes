@@ -13,4 +13,11 @@ export default {
   defaults: {
     caption: "Selected work",
   },
+  fields: [
+    {
+      control: "text",
+      key: "caption",
+      label: "Caption",
+    },
+  ],
 }

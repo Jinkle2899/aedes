@@ -13,4 +13,18 @@ export default {
     tone: "tint",
     pad: "md",
   },
+  fields: [
+    {
+      control: "seg",
+      key: "pad",
+      label: "Padding",
+      options: ["sm", "md", "lg"],
+    },
+    {
+      control: "seg",
+      key: "tone",
+      label: "Background",
+      options: ["light", "tint", "dark"],
+    },
+  ],
 }

@@ -13,4 +13,14 @@ export default {
     heading: "Ready when you are.",
     button: "Start now",
   },
+  fields: [
+    {
+      control: "text",
+      key: "heading",
+      label: "Heading",
+    },
+    {
+      control: "button",
+    },
+  ],
 }

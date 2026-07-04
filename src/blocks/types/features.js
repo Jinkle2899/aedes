@@ -25,4 +25,21 @@ export default {
       },
     ],
   },
+  fields: [
+    {
+      control: "items",
+      key: "items",
+      label: "Items",
+      item: [
+        {
+          key: "t",
+          control: "input",
+        },
+        {
+          key: "d",
+          control: "input",
+        },
+      ],
+    },
+  ],
 }

@@ -36,4 +36,17 @@ export default {
       },
     ],
   },
+  fields: [
+    {
+      control: "number",
+      key: "height",
+      label: "Section height (px)",
+      min: 200,
+      max: 1400,
+    },
+    {
+      control: "note",
+      text: "Edit elements directly on the canvas: drag to move, double-click text to edit, pull the corner dot to resize, use the floating toolbar for style & images.",
+    },
+  ],
 }

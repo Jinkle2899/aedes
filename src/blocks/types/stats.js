@@ -26,4 +26,21 @@ export default {
       },
     ],
   },
+  fields: [
+    {
+      control: "items",
+      key: "items",
+      label: "Stats",
+      item: [
+        {
+          key: "n",
+          control: "input",
+        },
+        {
+          key: "l",
+          control: "input",
+        },
+      ],
+    },
+  ],
 }

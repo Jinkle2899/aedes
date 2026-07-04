@@ -15,4 +15,22 @@ export default {
     author: "Alex Rivera",
     role: "Founder, Somewhere Co.",
   },
+  fields: [
+    {
+      control: "textarea",
+      key: "text",
+      label: "Quote",
+      rows: 4,
+    },
+    {
+      control: "text",
+      key: "author",
+      label: "Author",
+    },
+    {
+      control: "text",
+      key: "role",
+      label: "Role",
+    },
+  ],
 }

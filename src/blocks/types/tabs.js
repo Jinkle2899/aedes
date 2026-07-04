@@ -26,4 +26,22 @@ export default {
       },
     ],
   },
+  fields: [
+    {
+      control: "items",
+      key: "items",
+      label: "Tabs",
+      item: [
+        {
+          key: "t",
+          control: "input",
+        },
+        {
+          key: "d",
+          control: "textarea",
+          rows: 2,
+        },
+      ],
+    },
+  ],
 }

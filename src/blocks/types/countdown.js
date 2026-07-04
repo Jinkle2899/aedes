@@ -14,4 +14,16 @@ export default {
     heading: "Something big is coming",
     target: "",
   },
+  fields: [
+    {
+      control: "text",
+      key: "heading",
+      label: "Heading",
+    },
+    {
+      control: "date",
+      key: "target",
+      label: "Counting down to",
+    },
+  ],
 }

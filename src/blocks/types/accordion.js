@@ -25,4 +25,22 @@ export default {
       },
     ],
   },
+  fields: [
+    {
+      control: "items",
+      key: "items",
+      label: "Questions",
+      item: [
+        {
+          key: "q",
+          control: "input",
+        },
+        {
+          key: "a",
+          control: "textarea",
+          rows: 2,
+        },
+      ],
+    },
+  ],
 }

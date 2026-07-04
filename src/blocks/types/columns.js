@@ -10,4 +10,9 @@ export default {
     pop: 0.5,
   },
   defaults: {},
+  fields: [
+    {
+      control: "columns",
+    },
+  ],
 }

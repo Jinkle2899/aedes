@@ -17,4 +17,32 @@ export default {
     align: "center",
     tone: "light",
   },
+  fields: [
+    {
+      control: "text",
+      key: "heading",
+      label: "Heading",
+    },
+    {
+      control: "textarea",
+      key: "sub",
+      label: "Subheading",
+      rows: 3,
+    },
+    {
+      control: "button",
+    },
+    {
+      control: "seg",
+      key: "align",
+      label: "Alignment",
+      options: ["left", "center"],
+    },
+    {
+      control: "seg",
+      key: "tone",
+      label: "Background",
+      options: ["light", "tint", "dark"],
+    },
+  ],
 }
