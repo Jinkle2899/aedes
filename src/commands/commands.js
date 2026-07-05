@@ -178,6 +178,16 @@ export function applyCommand(doc, command) {
       return { doc: { ...doc, meta: { ...doc.meta, ...patch } }, inverse: { type: 'PatchMeta', patch: prev } }
     }
 
+    case 'SetLayout': {
+      const { id, layout } = command
+      const n = doc.byId[id]
+      const prev = n.layout
+      const node = { ...n }
+      if (layout == null) delete node.layout
+      else node.layout = layout
+      return { doc: { ...doc, byId: { ...doc.byId, [id]: node } }, inverse: { type: 'SetLayout', id, layout: prev } }
+    }
+
     default:
       throw new Error(`Unknown command: ${command.type}`)
   }
@@ -193,4 +203,5 @@ export const cmd = {
   setColumns: (id, count) => ({ type: 'SetColumns', id, count }),
   insertMany: (nodes, parentId, index) => ({ type: 'InsertMany', nodes, parentId, index }),
   patchMeta: (patch) => ({ type: 'PatchMeta', patch }),
+  setLayout: (id, layout) => ({ type: 'SetLayout', id, layout }),
 }

@@ -160,6 +160,7 @@ function EditorInner({ initialSite, session }) {
     if (store.getState().selected === id) setSelected(null)
   }
   const setColumnsCount = (id, n) => editor.dispatch(cmd.setColumns(id, n))
+  const setLayout = (id, layout) => editor.dispatch(cmd.setLayout(id, layout))
 
   /* ---- Drag & drop ---- */
   const { startPaletteDrag, startBlockDrag, overBlock, overContainer, overRoot, drop, endDrag } = useDragDrop({
@@ -352,6 +353,7 @@ function EditorInner({ initialSite, session }) {
           onProp={onProp}
           setColumnsCount={setColumnsCount}
           onSelect={setSelected}
+          onSetLayout={setLayout}
         />
 
         {toast && (

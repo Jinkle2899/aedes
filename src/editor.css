@@ -1636,3 +1636,6 @@
   border: 1px solid var(--line, #e5e7eb); background: transparent; color: inherit; cursor: pointer;
 }
 .cmp-scope button.on { background: var(--ink, #17171a); color: #fff; border-color: var(--ink, #17171a); }
+
+/* --- Layout panel (free mode controls) --- */
+.ins-layout { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--line, #e5e7eb); }

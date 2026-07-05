@@ -1,6 +1,7 @@
 import { BLOCK_DEFS } from '../../lib/store.js'
 import { registry } from '../../blocks/index.js'
 import StylePanel from './StylePanel.jsx'
+import LayoutPanel from './LayoutPanel.jsx'
 import FieldRenderer from './FieldRenderer.jsx'
 
 /* ---------------- Inspector: breadcrumbs, style panel, per-type fields ----------------
@@ -8,7 +9,7 @@ import FieldRenderer from './FieldRenderer.jsx'
  * descriptor (src/blocks/types) and rendered by FieldRenderer — replacing the
  * former property-presence conditional cascade.
  */
-export default function Inspector({ block, path, onProp, setColumnsCount, onSelect }) {
+export default function Inspector({ block, path, onProp, setColumnsCount, onSelect, onSetLayout }) {
   if (!block) {
     return (
       <div className="ins-empty">
@@ -40,6 +41,8 @@ export default function Inspector({ block, path, onProp, setColumnsCount, onSele
       <p className="ins-title">{BLOCK_DEFS[block.type].label}</p>
 
       <StylePanel block={block} onProp={onProp} />
+
+      <LayoutPanel block={block} path={path} onSetLayout={onSetLayout} />
 
       <FieldRenderer block={block} fields={fields} onProp={onProp} setColumnsCount={setColumnsCount} />
     </div>
