@@ -1,20 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { makeBlock, emptyColumn, slugify } from '../lib/store.js'
+import { makeBlock, slugify } from '../lib/store.js'
 import { getSite, upsertSite } from '../lib/db.js'
 import { cloudEnabled } from '../lib/supabase.js'
 import { useAuth } from '../lib/auth.jsx'
-import { findById, findParent, findPath, removeById, insertAt, updateProps, regenIds } from '../lib/tree.js'
+import { findById, regenIds } from '../lib/tree.js'
+import { buildNested } from '../document/model.js'
+import { fromNested, toSite } from '../document/projection.js'
+import { createEditor } from '../commands/bus.js'
+import { cmd } from '../commands/commands.js'
 import { predict, predictAt, gapSeams } from '../lib/predict.js'
+import { generate as aiGenerate } from '../lib/generate.js'
 import { loadMeta, recordUse, toggleFav, setPredictOn } from '../lib/blockMeta.js'
-import { EdCtx } from '../editor/context.js'
+import { EdCtx, EditorStoreCtx, DocCtx } from '../editor/context.js'
+import { createEditorStore, useStore } from '../editor/store/editorStore.js'
+import InspectorPanel from '../editor/inspector/InspectorPanel.jsx'
 import TopBar from '../editor/components/TopBar.jsx'
 import Rail from '../editor/components/Rail.jsx'
 import { Children } from '../editor/components/BlockNode.jsx'
 import HorizonGhost from '../editor/components/HorizonGhost.jsx'
 import CommandPalette from '../editor/components/CommandPalette.jsx'
+import ComposePalette from '../editor/components/ComposePalette.jsx'
 import BrowseDrawer from '../editor/components/BrowseDrawer.jsx'
-import Inspector from '../editor/inspector/Inspector.jsx'
 
 /* ---------------- Loader: fetch the site, then mount the editor ---------------- */
 export default function Editor() {
@@ -58,19 +65,58 @@ export default function Editor() {
 
 /* ---------------- The editor: state + orchestration ---------------- */
 function EditorInner({ initialSite, session }) {
-  const [site, setSite] = useState(initialSite)
-  const [selected, setSelected] = useState(null)
-  const [dropTarget, setDropTarget] = useState(null) // { parentId, index }
+  const [, forceRender] = useReducer((n) => n + 1, 0)
+  const storeRef = useRef(null)
+  if (!storeRef.current)
+    storeRef.current = createEditorStore({ selected: null, seamOpen: null, preview: false, dropTarget: null, meta: loadMeta() })
+  const store = storeRef.current
+  const setSelected = (id) => store.setState({ selected: id })
+  const setSeamOpen = (v) => store.setState({ seamOpen: v })
+  const setDropTarget = (v) => store.setState({ dropTarget: v })
+  const setPreview = (v) => store.setState({ preview: v })
+  const setMeta = (m) => store.setState({ meta: m })
+  const preview = useStore(store, (s) => s.preview)
+  const dropTarget = useStore(store, (s) => s.dropTarget)
+  const meta = useStore(store, (s) => s.meta)
   const [device, setDevice] = useState('desktop')
-  const [preview, setPreview] = useState(false)
   const [toast, setToast] = useState('')
-  const [palette, setPalette] = useState(null) // null | 'command' | 'drawer'
-  const [meta, setMeta] = useState(loadMeta)
+  const [palette, setPalette] = useState(null) // null | 'command' | 'compose' | 'drawer'
   const [saveState, setSaveState] = useState('saved') // saved | saving | error
   const dragRef = useRef(null)
   const toastTimer = useRef(null)
-  const saveTimer = useRef(null)
-  const pendingRef = useRef(null)
+  const saveRef = useRef(setSaveState)
+  saveRef.current = setSaveState
+
+  /* Document + command bus — the V2 mutation path. `site` is a projection of the
+     normalized doc, so all downstream UI (renderers/inspector/prediction) is
+     unchanged. Every edit is an invertible command → undo/redo for free. */
+  const editorRef = useRef(null)
+  if (!editorRef.current) {
+    editorRef.current = createEditor(
+      fromNested(initialSite.blocks, {
+        id: initialSite.id,
+        name: initialSite.name,
+        kind: initialSite.kind ?? null,
+        font: initialSite.font ?? null,
+        updatedAt: initialSite.updatedAt,
+      }),
+      {
+        persist: async (d) => {
+          saveRef.current('saving')
+          try {
+            await upsertSite(toSite({ ...d, meta: { ...d.meta, updatedAt: Date.now() } }), session)
+            saveRef.current('saved')
+          } catch {
+            saveRef.current('error')
+          }
+        },
+      }
+    )
+  }
+  const editor = editorRef.current
+  useEffect(() => editor.subscribe(() => forceRender()), [editor])
+  const doc = editor.getDoc()
+  const site = useMemo(() => toSite(doc), [doc])
 
   useEffect(() => {
     document.title = `${site.name} — Aedes Editor`
@@ -114,95 +160,43 @@ function EditorInner({ initialSite, session }) {
   }, [preview])
 
   /* flush pending save on unmount */
-  useEffect(
-    () => () => {
-      clearTimeout(saveTimer.current)
-      if (pendingRef.current) upsertSite(pendingRef.current, session).catch(() => {})
-    },
-    [session]
-  )
+  useEffect(() => () => editor.flush(), [editor])
 
-  /* ---- Persistence (debounced) ---- */
-  const persist = (next) => {
-    next.updatedAt = Date.now()
-    setSite(next)
-    pendingRef.current = next
-    setSaveState('saving')
-    clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      try {
-        await upsertSite(next, session)
-        pendingRef.current = null
-        setSaveState('saved')
-      } catch {
-        setSaveState('error')
-      }
-    }, 700)
-  }
-  const patchSite = (patch) => persist({ ...site, ...patch })
-  const setBlocks = (fn) => persist({ ...site, blocks: fn(site.blocks) })
-  const onProp = (blockId, patch) => setBlocks((bs) => updateProps(bs, blockId, patch))
+  /* ---- Mutations: every edit is a command ---- */
+  const patchSite = (patch) => editor.dispatch(cmd.patchMeta(patch))
+  const onProp = (blockId, patch) => editor.dispatch(cmd.update(blockId, patch))
 
-  /* ---- Tree operations ---- */
   const doInsert = (parentId, index, block) => {
-    setBlocks((bs) => insertAt(bs, parentId, index, block))
+    editor.dispatch(cmd.insert(block, parentId, index))
     setSelected(block.id)
     setMeta(recordUse(block.type))
   }
-  const doMove = (id, target) => {
-    setBlocks((bs) => {
-      const orig = findParent(bs, id)
-      if (!orig) return bs
-      const [tree, removed] = removeById(bs, id)
-      if (!removed) return bs
-      /* refuse to drop a container into itself */
-      if (target.parentId !== null && (target.parentId === id || findById([removed], target.parentId))) return bs
-      let idx = target.index
-      if (orig.parentId === target.parentId && orig.index < target.index) idx -= 1
-      return insertAt(tree, target.parentId, idx, removed)
-    })
-  }
+  const doMove = (id, target) => editor.dispatch(cmd.move(id, target.parentId, target.index))
   const nudge = (id, dir) => {
-    setBlocks((bs) => {
-      const loc = findParent(bs, id)
-      if (!loc) return bs
-      const siblings = loc.parentId === null ? bs : findById(bs, loc.parentId).children
-      const j = loc.index + dir
-      if (j < 0 || j >= siblings.length) return bs
-      const [tree, removed] = removeById(bs, id)
-      return insertAt(tree, loc.parentId, j, removed)
-    })
+    const d = editor.getDoc()
+    const parent = d.parentOf[id]
+    const sibs = parent === null ? d.rootIds : d.byId[parent].childIds
+    const i = sibs.indexOf(id)
+    const j = i + dir
+    if (j < 0 || j >= sibs.length) return
+    editor.dispatch(cmd.move(id, parent, j, true))
   }
   const duplicate = (id) => {
-    const loc = findParent(site.blocks, id)
-    const orig = findById(site.blocks, id)
-    if (!loc || !orig) return
-    const copy = regenIds(orig)
-    setBlocks((bs) => insertAt(bs, loc.parentId, loc.index + 1, copy))
+    const d = editor.getDoc()
+    const parent = d.parentOf[id]
+    if (parent === undefined) return
+    const sibs = parent === null ? d.rootIds : d.byId[parent].childIds
+    const i = sibs.indexOf(id)
+    if (i < 0) return
+    const copy = regenIds(buildNested(d, id))
+    editor.dispatch(cmd.insert(copy, parent, i + 1))
     setSelected(copy.id)
   }
   const remove = (id) => {
-    setBlocks((bs) => removeById(bs, id)[0])
-    if (selected === id) setSelected(null)
+    editor.dispatch(cmd.remove(id))
+    if (store.getState().selected === id) setSelected(null)
   }
-  const setColumnsCount = (id, n) => {
-    const mapBlocks = (arr) =>
-      arr.map((b) => {
-        if (b.id === id) {
-          let ch = [...b.children]
-          while (ch.length < n) ch.push(emptyColumn())
-          if (ch.length > n) {
-            const extra = ch.slice(n)
-            ch = ch.slice(0, n)
-            ch[n - 1] = { ...ch[n - 1], children: [...ch[n - 1].children, ...extra.flatMap((c) => c.children)] }
-          }
-          return { ...b, children: ch }
-        }
-        if (b.children) return { ...b, children: mapBlocks(b.children) }
-        return b
-      })
-    setBlocks(mapBlocks)
-  }
+  const setColumnsCount = (id, n) => editor.dispatch(cmd.setColumns(id, n))
 
   /* ---- Drag & drop ---- */
   const startPaletteDrag = (type) => (e) => {
@@ -237,9 +231,10 @@ function EditorInner({ initialSite, session }) {
   const drop = (e) => {
     e.preventDefault()
     const d = dragRef.current
-    if (d && dropTarget) {
-      if (d.kind === 'new') doInsert(dropTarget.parentId, dropTarget.index, makeBlock(d.type))
-      else doMove(d.id, dropTarget)
+    const dt = store.getState().dropTarget
+    if (d && dt) {
+      if (d.kind === 'new') doInsert(dt.parentId, dt.index, makeBlock(d.type))
+      else doMove(d.id, dt)
     }
     dragRef.current = null
     setDropTarget(null)
@@ -263,7 +258,6 @@ function EditorInner({ initialSite, session }) {
   const togglePredict = () => setMeta(setPredictOn(!predictOn))
 
   /* ---- Seams + gap detection (Layer 2) ---- */
-  const [seamOpen, setSeamOpen] = useState(null)
   const [dismissedGaps, setDismissedGaps] = useState([])
   useEffect(() => setSeamOpen(null), [blocksSig])
   const gapList = useMemo(
@@ -285,6 +279,7 @@ function EditorInner({ initialSite, session }) {
 
   /* ---- Palette / drawer (Layer 3) ---- */
   const paletteTarget = () => {
+    const selected = store.getState().selected
     if (selected) {
       const i = site.blocks.findIndex((b) => b.id === selected || !!findById([b], selected))
       if (i >= 0) return i + 1
@@ -298,6 +293,21 @@ function EditorInner({ initialSite, session }) {
   const toggleFavorite = (type) => setMeta(toggleFav(type))
   const closePalette = () => setPalette(null)
   const openDrawer = () => setPalette('drawer')
+  const openCompose = () => setPalette('compose')
+
+  /* ---- AI Compose (Tier 0 deterministic; LLM tiers plug in behind generate()) ---- */
+  const composePreview = (prompt, scope) =>
+    aiGenerate({ prompt, scope, siteKind: site.kind, existingTypes: site.blocks.map((b) => b.type) })
+  const compose = (prompt, scope) => {
+    const { blocks } = composePreview(prompt, scope)
+    if (!blocks.length) return
+    const d = editor.getDoc()
+    const idx = scope === 'page' ? d.rootIds.length : paletteTarget()
+    editor.dispatch(cmd.insertMany(blocks, null, idx))
+    setSelected(blocks[0].id)
+    setMeta(recordUse(blocks[0].type))
+    setPalette(null)
+  }
 
   /* ---- Keyboard: ⌘K / ⌘L / "/" ---- */
   useEffect(() => {
@@ -311,6 +321,20 @@ function EditorInner({ initialSite, session }) {
       if (mod && e.key.toLowerCase() === 'l') {
         e.preventDefault()
         setPalette((p) => (p === 'drawer' ? null : 'drawer'))
+        return
+      }
+      if (mod && e.key.toLowerCase() === 'g') {
+        e.preventDefault()
+        setPalette((p) => (p === 'compose' ? null : 'compose'))
+        return
+      }
+      if (mod && e.key.toLowerCase() === 'z') {
+        const a = document.activeElement
+        const editing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)
+        if (editing) return // let native text undo handle it
+        e.preventDefault()
+        if (e.shiftKey) editor.redo()
+        else editor.undo()
         return
       }
       const a = document.activeElement
@@ -355,18 +379,18 @@ function EditorInner({ initialSite, session }) {
     toastTimer.current = setTimeout(() => setToast(''), 3200)
   }
 
-  const selBlock = selected ? findById(site.blocks, selected) : null
   const railFavs = meta.favs
   const railRecents = meta.recents.filter((t) => !railFavs.includes(t)).slice(0, 4)
   const railStarter =
     railFavs.length + railRecents.length === 0 ? ['hero', 'text', 'image', 'features', 'cta'] : null
 
-  const ctxValue = {
-    selected,
+  /* Stable actions context: canvas consumers read reactive state from the store,
+     so this object keeps a stable identity across edits (a prop edit re-renders
+     only the edited node, not the canvas). Each wrapper delegates to the latest
+     implementation, so no closure ever goes stale. */
+  const impl = {
     setSelected,
-    preview,
     onProp,
-    dropTarget,
     overBlock,
     overContainer,
     startBlockDrag,
@@ -374,22 +398,33 @@ function EditorInner({ initialSite, session }) {
     nudge,
     duplicate,
     remove,
-    seamOpen,
     setSeamOpen,
     gapAt,
     predictAtIndex,
     insertAtSeam,
     dismissGap,
-    meta,
     toggleFavorite,
     paletteTarget,
     insertFromPalette,
     closePalette,
     openDrawer,
+    openCompose,
+    compose,
+    composePreview,
     paletteDrag: startPaletteDrag,
   }
+  const implRef = useRef(impl)
+  implRef.current = impl
+  const ctxRef = useRef(null)
+  if (!ctxRef.current) {
+    ctxRef.current = {}
+    for (const k of Object.keys(impl)) ctxRef.current[k] = (...args) => implRef.current[k](...args)
+  }
+  const ctxValue = ctxRef.current
 
   return (
+    <DocCtx.Provider value={editor}>
+    <EditorStoreCtx.Provider value={store}>
     <EdCtx.Provider value={ctxValue}>
       <div className={`editor${preview ? ' previewing' : ''}`}>
         <TopBar
@@ -438,7 +473,7 @@ function EditorInner({ initialSite, session }) {
             {site.blocks.length === 0 && !ghostVisible && (
               <div className="ed-empty">Drag your first block here</div>
             )}
-            <Children blocks={site.blocks} parentId={null} emptyHint="" />
+            <Children parentId={null} emptyHint="" />
             {ghostVisible && (
               <HorizonGhost
                 candidates={prediction.candidates}
@@ -451,17 +486,14 @@ function EditorInner({ initialSite, session }) {
           </div>
         </div>
 
-        {/* ---- Right: inspector ---- */}
-        <aside className="ed-right" onClick={(e) => e.stopPropagation()}>
-          <p className="ed-panel-title">Inspector</p>
-          <Inspector
-            block={selBlock}
-            path={selected ? findPath(site.blocks, selected) : []}
-            onProp={onProp}
-            setColumnsCount={setColumnsCount}
-            onSelect={setSelected}
-          />
-        </aside>
+        {/* ---- Right: inspector (subscribes to selection itself) ---- */}
+        <InspectorPanel
+          store={store}
+          blocks={site.blocks}
+          onProp={onProp}
+          setColumnsCount={setColumnsCount}
+          onSelect={setSelected}
+        />
 
         {toast && (
           <div className="ed-toast">
@@ -470,8 +502,11 @@ function EditorInner({ initialSite, session }) {
         )}
 
         {palette === 'command' && <CommandPalette />}
+        {palette === 'compose' && <ComposePalette />}
         {palette === 'drawer' && <BrowseDrawer />}
       </div>
     </EdCtx.Provider>
+    </EditorStoreCtx.Provider>
+    </DocCtx.Provider>
   )
 }

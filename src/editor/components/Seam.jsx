@@ -1,13 +1,16 @@
 import { useContext, useMemo, useState } from 'react'
-import { EdCtx } from '../context.js'
+import { EdCtx, EditorStoreCtx } from '../context.js'
+import { useStore } from '../store/editorStore.js'
 import { BLOCK_DEFS, BLOCK_TYPES } from '../../lib/store.js'
 import GhostRender from './GhostRender.jsx'
 
 /* ---------------- Seam (Layer 2): + between blocks, context chips, gap hints ---------------- */
 export function Seam({ index }) {
   const ed = useContext(EdCtx)
-  if (ed.preview) return null
-  const open = ed.seamOpen === index
+  const store = useContext(EditorStoreCtx)
+  const open = useStore(store, (s) => s.seamOpen === index)
+  const preview = useStore(store, (s) => s.preview)
+  if (preview) return null
   const gap = ed.gapAt(index)
   return (
     <div className={`seam${open ? ' open' : ''}${gap ? ' has-gap' : ''}`}>

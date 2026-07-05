@@ -1,5 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { EdCtx } from '../context.js'
+import { EdCtx, EditorStoreCtx } from '../context.js'
+import { useStore } from '../store/editorStore.js'
 import { BLOCK_DEFS } from '../../lib/store.js'
 import { searchBlocks } from '../../lib/blockSearch.js'
 import GhostRender from './GhostRender.jsx'
@@ -7,13 +8,14 @@ import GhostRender from './GhostRender.jsx'
 /* ---------------- Command palette (Layer 3, ⌘K) ---------------- */
 export default function CommandPalette() {
   const ed = useContext(EdCtx)
+  const meta = useStore(useContext(EditorStoreCtx), (s) => s.meta)
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const target = ed.paletteTarget()
 
   const items = useMemo(() => {
     if (q.trim()) {
-      return searchBlocks(q, ed.meta.counts)
+      return searchBlocks(q, meta.counts)
         .slice(0, 8)
         .map((r) => ({ type: r.type, note: BLOCK_DEFS[r.type].hint, section: 'Results' }))
     }
@@ -26,8 +28,8 @@ export default function CommandPalette() {
       }
     }
     ed.predictAtIndex(target).slice(0, 3).forEach((s) => push(s.type, s.because, 'Suggested here'))
-    ed.meta.recents.forEach((t) => push(t, BLOCK_DEFS[t].hint, 'Recent'))
-    ed.meta.favs.forEach((t) => push(t, BLOCK_DEFS[t].hint, 'Pinned'))
+    meta.recents.forEach((t) => push(t, BLOCK_DEFS[t].hint, 'Recent'))
+    meta.favs.forEach((t) => push(t, BLOCK_DEFS[t].hint, 'Pinned'))
     if (out.length === 0)
       ['hero', 'text', 'image', 'features', 'cta'].forEach((t) => push(t, BLOCK_DEFS[t].hint, 'Starter'))
     return out
@@ -82,20 +84,30 @@ export default function CommandPalette() {
                     <span>{it.note}</span>
                     <button
                       type="button"
-                      className={`cmdk-star${ed.meta.favs.includes(it.type) ? ' on' : ''}`}
+                      className={`cmdk-star${meta.favs.includes(it.type) ? ' on' : ''}`}
                       title="Pin to rail"
                       onClick={(e) => {
                         e.stopPropagation()
                         ed.toggleFavorite(it.type)
                       }}
                     >
-                      {ed.meta.favs.includes(it.type) ? '★' : '☆'}
+                      {meta.favs.includes(it.type) ? '★' : '☆'}
                     </button>
                   </div>
                 </div>
               )
             })}
             {items.length === 0 && <p className="cmdk-none">No blocks match “{q}”</p>}
+            <div
+              className="cmdk-row cmdk-browse"
+              onClick={() => {
+                ed.openCompose()
+              }}
+            >
+              <strong>✨ Generate from a prompt</strong>
+              <span>describe a section or page</span>
+              <kbd>⌘G</kbd>
+            </div>
             <div
               className="cmdk-row cmdk-browse"
               onClick={() => {

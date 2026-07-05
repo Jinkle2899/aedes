@@ -1,11 +1,14 @@
 import { useContext, useEffect, useState } from 'react'
-import { EdCtx } from '../context.js'
+import { EdCtx, EditorStoreCtx } from '../context.js'
+import { useStore } from '../store/editorStore.js'
 import Editable from '../components/Editable.jsx'
 
 /* Stateful block renderers: tabs, accordion, countdown, animated text */
 
 export function TabsBlock({ block }) {
   const ed = useContext(EdCtx)
+  const store = useContext(EditorStoreCtx)
+  const preview = useStore(store, (s) => s.preview)
   const p = block.props
   const [active, setActive] = useState(0)
   const i = Math.min(active, p.items.length - 1)
@@ -20,7 +23,7 @@ export function TabsBlock({ block }) {
             className={`b-tab${j === i ? ' on' : ''}`}
             onClick={() => setActive(j)}
           >
-            <Editable tag="span" value={it.t} disabled={ed.preview} onCommit={patchItem(j, 't')} />
+            <Editable tag="span" value={it.t} disabled={preview} onCommit={patchItem(j, 't')} />
           </span>
         ))}
       </div>
@@ -28,7 +31,7 @@ export function TabsBlock({ block }) {
         tag="p"
         className="b-tabs-panel"
         value={p.items[i].d}
-        disabled={ed.preview}
+        disabled={preview}
         singleLine={false}
         onCommit={patchItem(i, 'd')}
       />
@@ -38,6 +41,8 @@ export function TabsBlock({ block }) {
 
 export function AccordionBlock({ block }) {
   const ed = useContext(EdCtx)
+  const store = useContext(EditorStoreCtx)
+  const preview = useStore(store, (s) => s.preview)
   const p = block.props
   const [open, setOpen] = useState(0)
   const patchItem = (j, key) => (v) =>
@@ -47,7 +52,7 @@ export function AccordionBlock({ block }) {
       {p.items.map((it, j) => (
         <div className={`b-acc-item${open === j ? ' open' : ''}`} key={j}>
           <div className="b-acc-head" onClick={() => setOpen(open === j ? -1 : j)}>
-            <Editable tag="span" value={it.q} disabled={ed.preview} onCommit={patchItem(j, 'q')} />
+            <Editable tag="span" value={it.q} disabled={preview} onCommit={patchItem(j, 'q')} />
             <i>+</i>
           </div>
           {open === j && (
@@ -55,7 +60,7 @@ export function AccordionBlock({ block }) {
               tag="p"
               className="b-acc-body"
               value={it.a}
-              disabled={ed.preview}
+              disabled={preview}
               singleLine={false}
               onCommit={patchItem(j, 'a')}
             />
@@ -68,6 +73,8 @@ export function AccordionBlock({ block }) {
 
 export function CountdownBlock({ block }) {
   const ed = useContext(EdCtx)
+  const store = useContext(EditorStoreCtx)
+  const preview = useStore(store, (s) => s.preview)
   const p = block.props
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
@@ -86,7 +93,7 @@ export function CountdownBlock({ block }) {
       <Editable
         tag="h2"
         value={p.heading}
-        disabled={ed.preview}
+        disabled={preview}
         onCommit={(v) => ed.onProp(block.id, { heading: v })}
       />
       <div className="b-count-units">
@@ -103,6 +110,8 @@ export function CountdownBlock({ block }) {
 
 export function RotatorBlock({ block }) {
   const ed = useContext(EdCtx)
+  const store = useContext(EditorStoreCtx)
+  const preview = useStore(store, (s) => s.preview)
   const p = block.props
   const [wi, setWi] = useState(0)
   useEffect(() => {
@@ -115,7 +124,7 @@ export function RotatorBlock({ block }) {
       <Editable
         tag="span"
         value={p.prefix}
-        disabled={ed.preview}
+        disabled={preview}
         onCommit={(v) => ed.onProp(block.id, { prefix: v })}
       />{' '}
       <span className="b-rot-word" key={word}>{word}</span>

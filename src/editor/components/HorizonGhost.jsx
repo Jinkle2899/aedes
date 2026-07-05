@@ -1,5 +1,6 @@
 import { useContext, useMemo } from 'react'
-import { EdCtx } from '../context.js'
+import { EdCtx, EditorStoreCtx } from '../context.js'
+import { previewStore } from '../store/editorStore.js'
 import { makeBlock, BLOCK_DEFS } from '../../lib/store.js'
 import BlockContent from '../blocks/BlockContent.jsx'
 
@@ -9,7 +10,6 @@ export default function HorizonGhost({ candidates, cycle, onCycle, onAccept, onD
   const cand = candidates[((cycle % candidates.length) + candidates.length) % candidates.length]
   const ghostBlock = useMemo(() => makeBlock(cand.type), [cand.type])
   const alts = candidates.filter((c) => c.type !== cand.type)
-  const previewCtx = useMemo(() => ({ ...ed, preview: true }), [ed])
 
   return (
     <div className="horizon" onClick={(e) => e.stopPropagation()}>
@@ -21,9 +21,9 @@ export default function HorizonGhost({ candidates, cycle, onCycle, onAccept, onD
         aria-label={`Suggested: ${BLOCK_DEFS[cand.type].label}. Press Tab to add, arrow keys for alternatives, Escape to dismiss.`}
       >
         <div className="horizon-inner">
-          <EdCtx.Provider value={previewCtx}>
+          <EditorStoreCtx.Provider value={previewStore}>
             <BlockContent block={ghostBlock} />
-          </EdCtx.Provider>
+          </EditorStoreCtx.Provider>
         </div>
       </div>
       <div className="horizon-bar">

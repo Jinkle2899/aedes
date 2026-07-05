@@ -1,52 +1,58 @@
-import { useContext } from 'react'
-import { EdCtx } from '../context.js'
+import { memo, useContext } from 'react'
+import { EdCtx, EditorStoreCtx } from '../context.js'
+import { useStore } from '../store/editorStore.js'
+import { useNode, useChildList } from '../store/useDoc.js'
 import { blockStyleClass, blockStyleInline } from '../style.js'
 import BlockContent from '../blocks/BlockContent.jsx'
 import { Seam } from './Seam.jsx'
 
-/* ---------------- Recursive children renderer ---------------- */
-export function Children({ blocks, parentId, emptyHint }) {
-  const ed = useContext(EdCtx)
-  const showLine = (i) =>
-    ed.dropTarget && ed.dropTarget.parentId === parentId && ed.dropTarget.index === i
+/* ---------------- Recursive children renderer (reads child ids from the doc) ---------------- */
+export function Children({ parentId, emptyHint }) {
+  const store = useContext(EditorStoreCtx)
+  const ids = useChildList(parentId)
+  const preview = useStore(store, (s) => s.preview)
+  const dropTarget = useStore(store, (s) => s.dropTarget)
+  const showLine = (i) => dropTarget && dropTarget.parentId === parentId && dropTarget.index === i
   return (
     <>
-      {blocks.length === 0 && !ed.preview && emptyHint && (
-        <div className="ed-drop-empty">{emptyHint}</div>
-      )}
-      {blocks.map((b, i) => (
-        <div key={b.id}>
+      {ids.length === 0 && !preview && emptyHint && <div className="ed-drop-empty">{emptyHint}</div>}
+      {ids.map((id, i) => (
+        <div key={id}>
           {showLine(i) && <div className="drop-line" />}
           {parentId === null && <Seam index={i} />}
-          <BlockNode block={b} index={i} parentId={parentId} />
+          <BlockNode id={id} index={i} parentId={parentId} />
         </div>
       ))}
-      {showLine(blocks.length) && <div className="drop-line" />}
+      {showLine(ids.length) && <div className="drop-line" />}
     </>
   )
 }
 
-/* ---------------- A block node (selection wrapper + style wrapper) ---------------- */
-export function BlockNode({ block, index, parentId }) {
+/* ---------------- A block node: subscribes to its own node + selection ---------------- */
+export const BlockNode = memo(function BlockNode({ id, index, parentId }) {
   const ed = useContext(EdCtx)
-  const isSel = ed.selected === block.id && !ed.preview
+  const store = useContext(EditorStoreCtx)
+  const block = useNode(id)
+  const preview = useStore(store, (s) => s.preview)
+  const isSel = useStore(store, (s) => s.selected === id) && !preview
+  if (!block) return null
   const st = block.props.style || {}
   return (
     <div
       className={`ed-block${isSel ? ' selected' : ''}`}
       onClick={(e) => {
-        if (ed.preview) return
+        if (preview) return
         e.stopPropagation()
-        ed.setSelected(block.id)
+        ed.setSelected(id)
         ed.setSeamOpen(null)
       }}
       onDragOver={ed.overBlock(parentId, index)}
     >
-      {!ed.preview && (
+      {!preview && (
         <span
           className="ed-handle"
           draggable
-          onDragStart={ed.startBlockDrag(block.id)}
+          onDragStart={ed.startBlockDrag(id)}
           onDragEnd={ed.endDrag}
           title="Drag to reorder"
         >
@@ -55,10 +61,10 @@ export function BlockNode({ block, index, parentId }) {
       )}
       {isSel && (
         <div className="ed-tools" onClick={(e) => e.stopPropagation()}>
-          <button type="button" onClick={() => ed.nudge(block.id, -1)} title="Move up">↑</button>
-          <button type="button" onClick={() => ed.nudge(block.id, 1)} title="Move down">↓</button>
-          <button type="button" onClick={() => ed.duplicate(block.id)} title="Duplicate">⧉</button>
-          <button type="button" onClick={() => ed.remove(block.id)} title="Delete">✕</button>
+          <button type="button" onClick={() => ed.nudge(id, -1)} title="Move up">↑</button>
+          <button type="button" onClick={() => ed.nudge(id, 1)} title="Move down">↓</button>
+          <button type="button" onClick={() => ed.duplicate(id)} title="Duplicate">⧉</button>
+          <button type="button" onClick={() => ed.remove(id)} title="Delete">✕</button>
         </div>
       )}
       <div className={blockStyleClass(st)} style={blockStyleInline(st)} data-anim={st.anim || undefined}>
@@ -66,4 +72,4 @@ export function BlockNode({ block, index, parentId }) {
       </div>
     </div>
   )
-}
+})

@@ -1,5 +1,6 @@
 import { useContext, useMemo } from 'react'
-import { EdCtx } from '../context.js'
+import { EdCtx, EditorStoreCtx } from '../context.js'
+import { previewStore } from '../store/editorStore.js'
 import { makeBlock } from '../../lib/store.js'
 import BlockContent from '../blocks/BlockContent.jsx'
 
@@ -7,10 +8,11 @@ import BlockContent from '../blocks/BlockContent.jsx'
 export default function GhostRender({ type }) {
   const ed = useContext(EdCtx)
   const block = useMemo(() => makeBlock(type), [type])
-  const previewCtx = useMemo(() => ({ ...ed, preview: true }), [ed])
   return (
-    <EdCtx.Provider value={previewCtx}>
-      <BlockContent block={block} />
+    <EdCtx.Provider value={ed}>
+      <EditorStoreCtx.Provider value={previewStore}>
+        <BlockContent block={block} />
+      </EditorStoreCtx.Provider>
     </EdCtx.Provider>
   )
 }

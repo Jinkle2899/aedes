@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react'
-import { EdCtx } from '../context.js'
+import { EdCtx, EditorStoreCtx } from '../context.js'
+import { useStore } from '../store/editorStore.js'
 import { BLOCK_DEFS, BLOCK_TYPES } from '../../lib/store.js'
 import { searchBlocks } from '../../lib/blockSearch.js'
 import { CATS } from '../constants.js'
@@ -8,11 +9,12 @@ import GhostRender from './GhostRender.jsx'
 /* ---------------- Browse drawer (Layer 3, ⌘L) ---------------- */
 export default function BrowseDrawer() {
   const ed = useContext(EdCtx)
+  const meta = useStore(useContext(EditorStoreCtx), (s) => s.meta)
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('all')
 
   let types = BLOCK_TYPES
-  if (q.trim()) types = searchBlocks(q, ed.meta.counts).map((r) => r.type)
+  if (q.trim()) types = searchBlocks(q, meta.counts).map((r) => r.type)
   else if (cat !== 'all') types = CATS[cat] || []
 
   return (
@@ -66,13 +68,13 @@ export default function BrowseDrawer() {
                 <strong>{BLOCK_DEFS[t].label}</strong>
                 <button
                   type="button"
-                  className={`cmdk-star${ed.meta.favs.includes(t) ? ' on' : ''}`}
+                  className={`cmdk-star${meta.favs.includes(t) ? ' on' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation()
                     ed.toggleFavorite(t)
                   }}
                 >
-                  {ed.meta.favs.includes(t) ? '★' : '☆'}
+                  {meta.favs.includes(t) ? '★' : '☆'}
                 </button>
               </div>
             </div>
