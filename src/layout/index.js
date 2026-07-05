@@ -9,11 +9,12 @@
  *                overrides will consume it in a later increment.
  */
 import { flowStyle } from './strategies/flow.js'
+import { freeStyle } from './strategies/free.js'
 
 const STRATEGIES = {
   flow: flowStyle,
-  // free:  freeStyle,   // added in a later increment
-  // grid:  gridStyle,
+  free: freeStyle,
+  // grid:  gridStyle,   // added in a later increment
   // flex:  flexStyle,
 }
 

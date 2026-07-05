@@ -28,6 +28,16 @@ export function buildRegistry(modules) {
     all: () => modules,
     blockTypes,
 
+    /* ---- containment capabilities (generalizes hardcoded section/columns) ---- */
+    isContainer: (type) => !!(byType[type] && byType[type].container),
+    canContain: (parentType, childType) => {
+      const p = byType[parentType]
+      if (!p || !p.container) return false
+      const child = byType[childType]
+      if (!child || child.internal) return childType === 'column' // only columns place internal columns
+      return p.canContain ? p.canContain.includes(childType) : true
+    },
+
     /* ---- derived legacy views (reproduce the old hand-written tables) ---- */
     toBlockDefs() {
       const out = {}

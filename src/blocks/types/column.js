@@ -2,6 +2,7 @@ export default {
   type: "column",
   label: "Column",
   internal: true,
+  container: true,
   dna: {
     grammar: "utility",
     after: [],

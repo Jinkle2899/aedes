@@ -36,10 +36,11 @@ export const BlockNode = memo(function BlockNode({ id, index, parentId, parentMo
   const preview = useStore(store, (s) => s.preview)
   const isSel = useStore(store, (s) => s.selected === id) && !preview
   if (!block) return null
-  const { className, style, dataAnim } = computeStyle(block, { parentMode })
+  const { className, style, dataAnim, wrapperStyle } = computeStyle(block, { parentMode })
   return (
     <div
       className={`ed-block${isSel ? ' selected' : ''}`}
+      style={wrapperStyle}
       onClick={(e) => {
         if (preview) return
         e.stopPropagation()

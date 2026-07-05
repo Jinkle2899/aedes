@@ -40,6 +40,7 @@ export function isDescendant(doc, ancestorId, maybeId) {
 export function buildNested(doc, id) {
   const n = doc.byId[id]
   const out = { id: n.id, type: n.type, props: n.props }
+  if (n.layout) out.layout = n.layout
   if (n.childIds) out.children = n.childIds.map((c) => buildNested(doc, c))
   return out
 }

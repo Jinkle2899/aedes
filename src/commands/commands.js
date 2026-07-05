@@ -17,7 +17,13 @@ function addSubtree(doc, node, parentId) {
   const parentOf = { ...doc.parentOf }
   const walk = (n, pid) => {
     const has = Array.isArray(n.children)
-    byId[n.id] = { id: n.id, type: n.type, props: n.props, ...(has ? { childIds: n.children.map((c) => c.id) } : {}) }
+    byId[n.id] = {
+      id: n.id,
+      type: n.type,
+      props: n.props,
+      ...(n.layout ? { layout: n.layout } : {}),
+      ...(has ? { childIds: n.children.map((c) => c.id) } : {}),
+    }
     parentOf[n.id] = pid
     if (has) n.children.forEach((c) => walk(c, n.id))
   }

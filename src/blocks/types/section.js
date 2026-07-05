@@ -3,6 +3,7 @@ export default {
   label: "Section",
   hint: "Holds other blocks",
   category: "layout",
+  container: true,
   aliases: ["container", "wrapper", "group", "band"],
   dna: {
     grammar: "body",

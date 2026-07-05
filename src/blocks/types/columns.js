@@ -3,6 +3,8 @@ export default {
   label: "Columns",
   hint: "Side-by-side layout",
   category: "layout",
+  container: true,
+  canContain: ["column"],
   aliases: ["grid", "row", "split", "side by side", "layout"],
   dna: {
     grammar: "body",

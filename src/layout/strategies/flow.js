@@ -11,6 +11,7 @@ export function flowStyle(node) {
     className: blockStyleClass(st),
     style: blockStyleInline(st),
     dataAnim: st.anim || undefined,
-    box: null, // free mode will populate an explicit {x,y,width,height,z,transform}
+    wrapperStyle: undefined, // flow adds no positioning to the node wrapper
+    box: null, // free mode populates an explicit box
   }
 }
