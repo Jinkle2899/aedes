@@ -2,12 +2,12 @@ import { memo, useContext } from 'react'
 import { EdCtx, EditorStoreCtx } from '../context.js'
 import { useStore } from '../store/editorStore.js'
 import { useNode, useChildList } from '../store/useDoc.js'
-import { blockStyleClass, blockStyleInline } from '../style.js'
+import { computeStyle } from '../../layout/index.js'
 import BlockContent from '../blocks/BlockContent.jsx'
 import { Seam } from './Seam.jsx'
 
 /* ---------------- Recursive children renderer (reads child ids from the doc) ---------------- */
-export function Children({ parentId, emptyHint }) {
+export function Children({ parentId, parentMode = 'flow', emptyHint }) {
   const store = useContext(EditorStoreCtx)
   const ids = useChildList(parentId)
   const preview = useStore(store, (s) => s.preview)
@@ -20,7 +20,7 @@ export function Children({ parentId, emptyHint }) {
         <div key={id}>
           {showLine(i) && <div className="drop-line" />}
           {parentId === null && <Seam index={i} />}
-          <BlockNode id={id} index={i} parentId={parentId} />
+          <BlockNode id={id} index={i} parentId={parentId} parentMode={parentMode} />
         </div>
       ))}
       {showLine(ids.length) && <div className="drop-line" />}
@@ -29,14 +29,14 @@ export function Children({ parentId, emptyHint }) {
 }
 
 /* ---------------- A block node: subscribes to its own node + selection ---------------- */
-export const BlockNode = memo(function BlockNode({ id, index, parentId }) {
+export const BlockNode = memo(function BlockNode({ id, index, parentId, parentMode = 'flow' }) {
   const ed = useContext(EdCtx)
   const store = useContext(EditorStoreCtx)
   const block = useNode(id)
   const preview = useStore(store, (s) => s.preview)
   const isSel = useStore(store, (s) => s.selected === id) && !preview
   if (!block) return null
-  const st = block.props.style || {}
+  const { className, style, dataAnim } = computeStyle(block, { parentMode })
   return (
     <div
       className={`ed-block${isSel ? ' selected' : ''}`}
@@ -67,7 +67,7 @@ export const BlockNode = memo(function BlockNode({ id, index, parentId }) {
           <button type="button" onClick={() => ed.remove(id)} title="Delete">✕</button>
         </div>
       )}
-      <div className={blockStyleClass(st)} style={blockStyleInline(st)} data-anim={st.anim || undefined}>
+      <div className={className} style={style} data-anim={dataAnim}>
         <BlockContent block={block} />
       </div>
     </div>

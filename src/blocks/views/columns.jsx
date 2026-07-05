@@ -2,6 +2,7 @@ import { useContext } from 'react'
 import { EdCtx } from '../../editor/context.js'
 import { useNode } from '../../editor/store/useDoc.js'
 import { Children } from '../../editor/components/BlockNode.jsx'
+import { getMode } from '../../layout/mode.js'
 
 function Column({ id }) {
   const ed = useContext(EdCtx)
@@ -9,7 +10,7 @@ function Column({ id }) {
   if (!col) return null
   return (
     <div className="b-column" onDragOver={ed.overContainer(id, (col.childIds || []).length)}>
-      <Children parentId={id} emptyHint="Drop here" />
+      <Children parentId={id} parentMode={getMode(col)} emptyHint="Drop here" />
     </div>
   )
 }
